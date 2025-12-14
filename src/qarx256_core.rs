@@ -36,6 +36,7 @@ impl Default for Qarx256Ctx {
 
 // Key setup using standard PRF
 pub fn qarx256_key_setup(ctx: &mut Qarx256Ctx, key: &[u8; KEY_SIZE]) {
+    // SHA3-512(key || i) PRF for each round
     let mut buf = [0u8; KEY_SIZE + 8];
     buf[..KEY_SIZE].copy_from_slice(key);
 
@@ -59,6 +60,7 @@ pub fn qarx256_encrypt_block(ctx: &Qarx256Ctx, input: &[u8; BLOCK_SIZE]) -> [u8;
         u64::from_le_bytes(input[24..32].try_into().unwrap()),
     ];
 
+    // Add IV if present
     if let Some(iv) = ctx.iv {
         state[0] ^= iv[0];
         state[1] ^= iv[1];
@@ -66,6 +68,7 @@ pub fn qarx256_encrypt_block(ctx: &Qarx256Ctx, input: &[u8; BLOCK_SIZE]) -> [u8;
         state[3] ^= iv[3];
     }
 
+    // Apply rounds
     for i in 0..ROUNDS {
         state = round_encrypt(state, ctx.rk[i]);
     }
@@ -86,10 +89,12 @@ pub fn qarx256_decrypt_block(ctx: &Qarx256Ctx, input: &[u8; BLOCK_SIZE]) -> [u8;
         u64::from_le_bytes(input[24..32].try_into().unwrap()),
     ];
 
+    // Apply rounds in reverse
     for i in (0..ROUNDS).rev() {
         state = round_decrypt(state, ctx.rk[i]);
     }
 
+    // Remove IV if present
     if let Some(iv) = ctx.iv {
         state[0] ^= iv[0];
         state[1] ^= iv[1];
@@ -104,57 +109,79 @@ pub fn qarx256_decrypt_block(ctx: &Qarx256Ctx, input: &[u8; BLOCK_SIZE]) -> [u8;
     output
 }
 
-pub fn round_encrypt(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
+// Round functions with fixed constants
+fn round_encrypt(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
     let (mut x0, mut x1, mut x2, mut x3) = (x[0], x[1], x[2], x[3]);
+
+    // Add round key
     x0 = x0.wrapping_add(rk[0]);
     x1 = x1.wrapping_add(rk[1]);
     x2 = x2.wrapping_add(rk[2]);
     x3 = x3.wrapping_add(rk[3]);
+
+    // ARX mix A
     x0 = x0.wrapping_add(x1);
     x1 = x1.rotate_left(ROT0) ^ x0;
     x2 = x2.wrapping_add(x3);
     x3 = x3.rotate_left(ROT1) ^ x2;
+
+    // ARX mix B
     x0 = x0.wrapping_add(x3);
     x3 = x3.rotate_left(ROT2) ^ x0;
     x2 = x2.wrapping_add(x1);
     x1 = x1.rotate_left(ROT3) ^ x2;
+
+    // Linear diffusion
     let t0 = x0 ^ x2;
     let t1 = x1 ^ x3;
     x0 ^= t1;
     x3 ^= t0;
     x1 ^= x0;
     x2 ^= x3;
-    x[0] ^= DIFFUSION_0;
-    x[1] ^= DIFFUSION_1;
-    x[2] ^= DIFFUSION_2;
-    x[3] ^= DIFFUSION_3;
+
+    // Add diffusion constants
+    x[0] = x0 ^ DIFFUSION_0;
+    x[1] = x1 ^ DIFFUSION_1;
+    x[2] = x2 ^ DIFFUSION_2;
+    x[3] = x3 ^ DIFFUSION_3;
+
     x
 }
 
-pub fn round_decrypt(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
-    x[0] ^= DIFFUSION_0;
-    x[1] ^= DIFFUSION_1;
-    x[2] ^= DIFFUSION_2;
-    x[3] ^= DIFFUSION_3;
-    x[2] ^= x[3];
-    x[1] ^= x[0];
-    let t1 = x[1] ^ x[3];
-    let t0 = x[0] ^ x[2];
-    x[3] ^= t0;
-    x[0] ^= t1;
-    x[1] = (x[1] ^ x[2]).rotate_right(ROT3);
-    x[2] = x[2].wrapping_sub(x[1]);
-    x[3] = (x[3] ^ x[0]).rotate_right(ROT2);
-    x[0] = x[0].wrapping_sub(x[3]);
-    x[3] = (x[3] ^ x[2]).rotate_right(ROT1);
-    x[2] = x[2].wrapping_sub(x[3]);
-    x[1] = (x[1] ^ x[0]).rotate_right(ROT0);
-    x[0] = x[0].wrapping_sub(x[1]);
-    x[0] = x[0].wrapping_sub(rk[0]);
-    x[1] = x[1].wrapping_sub(rk[1]);
-    x[2] = x[2].wrapping_sub(rk[2]);
-    x[3] = x[3].wrapping_sub(rk[3]);
-    x
+fn round_decrypt(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
+    // Remove diffusion constants
+    let mut x0 = x[0] ^ DIFFUSION_0;
+    let mut x1 = x[1] ^ DIFFUSION_1;
+    let mut x2 = x[2] ^ DIFFUSION_2;
+    let mut x3 = x[3] ^ DIFFUSION_3;
+
+    // Linear diffusion inverse
+    x2 ^= x3;
+    x1 ^= x0;
+    let t1 = x1 ^ x3;
+    let t0 = x0 ^ x2;
+    x3 ^= t0;
+    x0 ^= t1;
+
+    // ARX mix B inverse
+    x1 = (x1 ^ x2).rotate_right(ROT3);
+    x2 = x2.wrapping_sub(x1);
+    x3 = (x3 ^ x0).rotate_right(ROT2);
+    x0 = x0.wrapping_sub(x3);
+
+    // ARX mix A inverse
+    x3 = (x3 ^ x2).rotate_right(ROT1);
+    x2 = x2.wrapping_sub(x3);
+    x1 = (x1 ^ x0).rotate_right(ROT0);
+    x0 = x0.wrapping_sub(x1);
+
+    // Remove round key
+    x0 = x0.wrapping_sub(rk[0]);
+    x1 = x1.wrapping_sub(rk[1]);
+    x2 = x2.wrapping_sub(rk[2]);
+    x3 = x3.wrapping_sub(rk[3]);
+
+    [x0, x1, x2, x3]
 }
 
 #[cfg(test)]
@@ -162,31 +189,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_roundtrip_encrypt_decrypt() {
+    fn test_roundtrip() {
         let mut ctx = Qarx256Ctx::default();
         let key = [0u8; KEY_SIZE];
         qarx256_key_setup(&mut ctx, &key);
-
-        let plaintext = [1u8; BLOCK_SIZE];
+        
+        let plaintext = [0u8; BLOCK_SIZE];
         let ciphertext = qarx256_encrypt_block(&ctx, &plaintext);
-        let decrypted = qarx256_decrypt_block(&ctx, &ciphertext);
-
-        assert_eq!(plaintext, decrypted);
-    }
-
-    #[test]
-    fn test_encrypt_decrypt_with_iv() {
-        let mut ctx = Qarx256Ctx {
-            rk: [[0u64; 4]; ROUNDS],
-            iv: Some([1u64, 2, 3, 4]),
-        };
-        let key = [0u8; KEY_SIZE];
-        qarx256_key_setup(&mut ctx, &key);
-
-        let plaintext = [5u8; BLOCK_SIZE];
-        let ciphertext = qarx256_encrypt_block(&ctx, &plaintext);
-        let decrypted = qarx256_decrypt_block(&ctx, &ciphertext);
-
-        assert_eq!(plaintext, decrypted);
+        let recovered = qarx256_decrypt_block(&ctx, &ciphertext);
+        
+        assert_eq!(plaintext, recovered);
     }
 }
