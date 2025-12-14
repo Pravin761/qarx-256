@@ -36,7 +36,6 @@ impl Default for Qarx256Ctx {
 
 // Key setup using standard PRF
 pub fn qarx256_key_setup(ctx: &mut Qarx256Ctx, key: &[u8; KEY_SIZE]) {
-    // SHA3-512(key || i) PRF for each round
     let mut buf = [0u8; KEY_SIZE + 8];
     buf[..KEY_SIZE].copy_from_slice(key);
 
@@ -60,7 +59,6 @@ pub fn qarx256_encrypt_block(ctx: &Qarx256Ctx, input: &[u8; BLOCK_SIZE]) -> [u8;
         u64::from_le_bytes(input[24..32].try_into().unwrap()),
     ];
 
-    // Add IV if present
     if let Some(iv) = ctx.iv {
         state[0] ^= iv[0];
         state[1] ^= iv[1];
@@ -68,7 +66,6 @@ pub fn qarx256_encrypt_block(ctx: &Qarx256Ctx, input: &[u8; BLOCK_SIZE]) -> [u8;
         state[3] ^= iv[3];
     }
 
-    // Apply rounds
     for i in 0..ROUNDS {
         state = round_encrypt(state, ctx.rk[i]);
     }
@@ -89,12 +86,10 @@ pub fn qarx256_decrypt_block(ctx: &Qarx256Ctx, input: &[u8; BLOCK_SIZE]) -> [u8;
         u64::from_le_bytes(input[24..32].try_into().unwrap()),
     ];
 
-    // Apply rounds in reverse
     for i in (0..ROUNDS).rev() {
         state = round_decrypt(state, ctx.rk[i]);
     }
 
-    // Remove IV if present
     if let Some(iv) = ctx.iv {
         state[0] ^= iv[0];
         state[1] ^= iv[1];
@@ -109,9 +104,12 @@ pub fn qarx256_decrypt_block(ctx: &Qarx256Ctx, input: &[u8; BLOCK_SIZE]) -> [u8;
     output
 }
 
-// Round functions with fixed constants
+// Round encryption function
 pub(crate) fn round_encrypt(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
-    let (mut x0, mut x1, mut x2, mut x3) = (x[0], x[1], x[2], x[3]);
+    let mut x0 = x[0];
+    let mut x1 = x[1];
+    let mut x2 = x[2];
+    let mut x3 = x[3];
 
     // Add round key
     x0 = x0.wrapping_add(rk[0]);
@@ -148,8 +146,8 @@ pub(crate) fn round_encrypt(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
     x
 }
 
-pub(crate) fn round_decrypt(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
-    // Remove diffusion constants
+// Round decryption function
+pub(crate) fn round_decrypt(x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
     let mut x0 = x[0] ^ DIFFUSION_0;
     let mut x1 = x[1] ^ DIFFUSION_1;
     let mut x2 = x[2] ^ DIFFUSION_2;
@@ -191,13 +189,31 @@ mod tests {
     #[test]
     fn test_roundtrip() {
         let mut ctx = Qarx256Ctx::default();
-        let key = [0u8; KEY_SIZE];
+        let key = [42u8; KEY_SIZE];
         qarx256_key_setup(&mut ctx, &key);
         
-        let plaintext = [0u8; BLOCK_SIZE];
+        let plaintext = [123u8; BLOCK_SIZE];
         let ciphertext = qarx256_encrypt_block(&ctx, &plaintext);
         let recovered = qarx256_decrypt_block(&ctx, &ciphertext);
         
-        assert_eq!(plaintext, recovered);
+        assert_eq!(plaintext, recovered, "Encryption/decryption roundtrip failed");
+    }
+
+    #[test]
+    fn test_different_keys() {
+        let mut ctx1 = Qarx256Ctx::default();
+        let mut ctx2 = Qarx256Ctx::default();
+        
+        let key1 = [0u8; KEY_SIZE];
+        let key2 = [1u8; KEY_SIZE];
+        
+        qarx256_key_setup(&mut ctx1, &key1);
+        qarx256_key_setup(&mut ctx2, &key2);
+        
+        let plaintext = [0u8; BLOCK_SIZE];
+        let ct1 = qarx256_encrypt_block(&ctx1, &plaintext);
+        let ct2 = qarx256_encrypt_block(&ctx2, &plaintext);
+        
+        assert_ne!(ct1, ct2, "Different keys must produce different ciphertexts");
     }
 }
