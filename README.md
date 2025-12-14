@@ -1,3 +1,15 @@
+> **⚠️ CRITICAL: Experimental Cipher - NOT FOR PRODUCTION**
+>
+> This cipher has **NOT been cryptographically audited**.
+> Do NOT use this for:
+> - Real data encryption
+> - Passwords or sensitive data
+> - Production systems
+> - Any security-critical applications
+>
+> See [SECURITY.md](SECURITY.md) for details.
+>
+
 # QARX-256 (Experimental ARX Block Cipher)
 
 QARX-256 is an **experimental 256-bit block cipher** designed as a research project, not as a production-ready encryption scheme.
