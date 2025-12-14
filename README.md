@@ -17,20 +17,20 @@
 **QARX = Quantum-Aware Add-Rotate-XOR**
 
 - **Q – Quantum-Aware**  
-  Design generic quantum attacks (especially Grover-style search) ko dhyaan me rakh kar kiya gaya hai, effective security bits ko high rakhne ke goal ke saath.
+    Design addresses generic quantum attacks (especially Grover-style search) through a focus on maintaining high effective security bits.
 
-- **A – Add**  
-  Modular addition operations ARX construction ka core part hain.
+- **A – Add**
+-   Modular addition operations form the core component of the ARX construction.
+  
 
 - **R – Rotate**  
-  Bit rotations diffusion aur avalanche effect improve karne ke liye use kiye gaye hain.
+  Bit rotations improve diffusion and provide strong avalanche effects.
 
 - **X – XOR**  
-  XOR operations non-linearity aur state mixing ke liye use hote hain.
+  XOR operations provide non-linearity and efficient state mixing.
 
 - **256**  
-  256-bit block size (4 × 64-bit words) ka large state brute force aur generic quantum search ko computationally mehenga banane ke research goal ko reflect karta hai.
-
+256-bit block size (4 × 64-bit words) ensures large state, making brute force and generic quantum search computationally expensive as a   research goal.
 
 QARX-256 is an **experimental 256-bit block cipher** designed as a research project, not as a production-ready encryption scheme.
 
