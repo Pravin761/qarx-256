@@ -1,6 +1,7 @@
 // qarx256_modes.rs - Advanced modes module for research/lab use
 
 use crate::*;
+use crate::qarx256_core::{ROUNDS, round_encrypt};
 
 // Engine for adaptive features (research/lab only)
 pub struct Qarx256AdaptiveEngine {
