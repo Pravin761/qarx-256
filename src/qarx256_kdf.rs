@@ -1,7 +1,6 @@
 // qarx256_kdf.rs - Standard KDF module
 
 use sha3::{Digest, Sha3_512};
-use crate::BLOCK_SIZE;
 
 pub const KEY_SIZE: usize = 64;
 pub const PBKDF2_ITERATIONS: usize = 100000;
