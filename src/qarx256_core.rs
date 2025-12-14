@@ -19,6 +19,7 @@ const DIFFUSION_2: u64 = 0xA1B2C3D4E5F67890;
 const DIFFUSION_3: u64 = 0x09876543210FEDC;
 
 // Core cipher context
+#[derive(Clone)]
 pub struct Qarx256Ctx {
     pub rk: [[u64; 4]; ROUNDS],
     pub iv: Option<[u64; 4]>,
@@ -103,7 +104,7 @@ pub fn qarx256_decrypt_block(ctx: &Qarx256Ctx, input: &[u8; BLOCK_SIZE]) -> [u8;
     output
 }
 
-fn round_encrypt(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
+pub fn round_encrypt(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
     let (mut x0, mut x1, mut x2, mut x3) = (x[0], x[1], x[2], x[3]);
     x0 = x0.wrapping_add(rk[0]);
     x1 = x1.wrapping_add(rk[1]);
@@ -130,7 +131,8 @@ fn round_encrypt(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
     x
 }
 
-fn round_decrypt(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
+pub 22
+(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
     x[0] ^= DIFFUSION_0;
     x[1] ^= DIFFUSION_1;
     x[2] ^= DIFFUSION_2;
