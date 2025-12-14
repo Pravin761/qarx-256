@@ -24,7 +24,7 @@ fn main() {
     let key = [0u8; KEY_SIZE];
     qarx256_key_setup(&mut ctx, &key);
 
-    let plaintext = b"Hello, QARX-256! This is a test message for encryption.";
+    let plaintext = b"Test QARX-256!";
     let mut padded_plaintext = [0u8; BLOCK_SIZE];
     padded_plaintext[..plaintext.len()].copy_from_slice(plaintext);
 
