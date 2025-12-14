@@ -131,8 +131,7 @@ pub fn round_encrypt(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
     x
 }
 
-pub 22
-(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
+pub fn round_decrypt(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
     x[0] ^= DIFFUSION_0;
     x[1] ^= DIFFUSION_1;
     x[2] ^= DIFFUSION_2;
@@ -156,4 +155,38 @@ pub 22
     x[2] = x[2].wrapping_sub(rk[2]);
     x[3] = x[3].wrapping_sub(rk[3]);
     x
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_roundtrip_encrypt_decrypt() {
+        let mut ctx = Qarx256Ctx::default();
+        let key = [0u8; KEY_SIZE];
+        qarx256_key_setup(&mut ctx, &key);
+
+        let plaintext = [1u8; BLOCK_SIZE];
+        let ciphertext = qarx256_encrypt_block(&ctx, &plaintext);
+        let decrypted = qarx256_decrypt_block(&ctx, &ciphertext);
+
+        assert_eq!(plaintext, decrypted);
+    }
+
+    #[test]
+    fn test_encrypt_decrypt_with_iv() {
+        let mut ctx = Qarx256Ctx {
+            rk: [[0u64; 4]; ROUNDS],
+            iv: Some([1u64, 2, 3, 4]),
+        };
+        let key = [0u8; KEY_SIZE];
+        qarx256_key_setup(&mut ctx, &key);
+
+        let plaintext = [5u8; BLOCK_SIZE];
+        let ciphertext = qarx256_encrypt_block(&ctx, &plaintext);
+        let decrypted = qarx256_decrypt_block(&ctx, &ciphertext);
+
+        assert_eq!(plaintext, decrypted);
+    }
 }
