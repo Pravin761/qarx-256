@@ -12,6 +12,26 @@
 
 # QARX-256 (Experimental ARX Block Cipher)
 
+## Name and Design Philosophy
+
+**QARX = Quantum-Aware Add-Rotate-XOR**
+
+- **Q – Quantum-Aware**  
+  Design generic quantum attacks (especially Grover-style search) ko dhyaan me rakh kar kiya gaya hai, effective security bits ko high rakhne ke goal ke saath.
+
+- **A – Add**  
+  Modular addition operations ARX construction ka core part hain.
+
+- **R – Rotate**  
+  Bit rotations diffusion aur avalanche effect improve karne ke liye use kiye gaye hain.
+
+- **X – XOR**  
+  XOR operations non-linearity aur state mixing ke liye use hote hain.
+
+- **256**  
+  256-bit block size (4 × 64-bit words) ka large state brute force aur generic quantum search ko computationally mehenga banane ke research goal ko reflect karta hai.
+
+
 QARX-256 is an **experimental 256-bit block cipher** designed as a research project, not as a production-ready encryption scheme.
 
 - Block size: 256 bits (4 × 64-bit words)
