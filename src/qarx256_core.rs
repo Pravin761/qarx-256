@@ -110,7 +110,7 @@ pub fn qarx256_decrypt_block(ctx: &Qarx256Ctx, input: &[u8; BLOCK_SIZE]) -> [u8;
 }
 
 // Round functions with fixed constants
-fn round_encrypt(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
+mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
     let (mut x0, mut x1, mut x2, mut x3) = (x[0], x[1], x[2], x[3]);
 
     // Add round key
@@ -148,7 +148,7 @@ fn round_encrypt(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
     x
 }
 
-fn round_decrypt(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
+pub(crate) fn round_decrypt(mut x: [u64; 4], rk: [u64; 4]) -> [u64; 4] {
     // Remove diffusion constants
     let mut x0 = x[0] ^ DIFFUSION_0;
     let mut x1 = x[1] ^ DIFFUSION_1;
